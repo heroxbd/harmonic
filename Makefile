@@ -1,9 +1,11 @@
 JUNO:=/cvmfs/juno.ihep.ac.cn/sl6_amd64_gcc830/Pre-Release/J20v1r0-Pre2/offline/Simulation/DetSimV2/DetSimOptions/data
 
 zl:=$(shell seq -17000 1000 17000)
+taul:=01 05 10 50
 JOBS:=4
 
-all: $(zl:%=ref/t/z%.h5)
+.PHONY: all
+all: $(taul:%=ref/t/%/pole.pdf)
 
 # 262144 is a magic number to map 300000 in the .csv to 37856 in detector simulation
 ref/geo.csv: $(JUNO)/PMTPos_Acrylic_with_chimney.csv $(JUNO)/3inch_pos.csv
@@ -14,9 +16,17 @@ ref/geo.csv: $(JUNO)/PMTPos_Acrylic_with_chimney.csv $(JUNO)/3inch_pos.csv
 cal/%.h5: cal/%.root
 	./rdet.py $^ -o $@ -z $(subst z,,$(basename $(notdir $@)))
 
-ref/t/%.h5: cal/%.h5 ref/geo.csv
-	mkdir -p $(dir $@) && rm -f $@
-	./shcalt.R $< -o $@ -l 4 --geo $(word 2,$^)
+define tau-tpl
+ref/t/$(1)/%.h5: cal/%.h5 ref/geo.csv
+	mkdir -p $$(dir $$@) && rm -f $$@
+	./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) > $$@.log 2>&1 && ./h5l.py -t $$< $$@
+
+ref/t/$(1)/pole.pdf: $(zl:%=ref/t/$(1)/z%.h5)
+	./pole.R -o $$@ --input $$^
+
+endef
+
+$(eval $(foreach tau,$(taul),$(call tau-tpl,$(tau))))
 
 ref/q/%.h5: tt/cal/%.h5
 	mkdir -p $(dir $@) && rm -f $@

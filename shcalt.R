@@ -15,13 +15,10 @@ geo <- read.table(argv$geo, col.names=c("ChannelID", "theta", "phi"))
 
 od <- argv$l^2 - 1
 
-if (argv$j > 1) {
-    require(doParallel)
-    registerDoParallel(cores=argv$j)
-}
-
 require(rhdf5)
 require(data.table)
+setDTthreads(argv$j)
+
 d <- h5read(argv$ipt, "PETruth")
 pl <- sort(unique(d[['ChannelID']]))
 npl <- length(pl)
@@ -60,13 +57,12 @@ m <- rq(fm, data=tx, tau=argv$tau, method="pfn")
 sm <- summary(m, se="ker")
 
 csm <- as.data.frame(coef(sm))
+names(csm)[2] <- "stderr"
+
+sa <- csm[1:(argv$l+1),]
+sa$order <- 0:argv$l
 
 fid <- H5Fcreate(argv$o)
-h5save(csm[1:(argv$l+1),], name="coef", file=fid, native=TRUE)
+h5save(sa, name="coef", file=fid, native=TRUE)
 h5save(csm[(argv$l+2):nrow(csm),], name="event", file=fid, native=TRUE)
 H5Fclose(fid)
-
-# sa <- cm[1:(argv$l+1)]
-# h5save(sa, file=fid)
-# ta <- cm[(argv$l+2):length(cm)]
-# h5save(ta, file=fid, createnewfile = FALSE)
