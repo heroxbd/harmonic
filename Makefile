@@ -1,7 +1,7 @@
 JUNO:=/cvmfs/juno.ihep.ac.cn/sl6_amd64_gcc830/Pre-Release/J20v1r0-Pre2/offline/Simulation/DetSimV2/DetSimOptions/data
 
-zl:=$(shell seq -17000 1000 17000)
-taul:=01 05 10 50
+zl:=$(shell seq -17000 500 17000)
+taul:=01 05 10 20 50
 JOBS:=4
 
 .PHONY: all
@@ -19,10 +19,10 @@ cal/%.h5: cal/%.root
 define tau-tpl
 ref/t/$(1)/%.h5: cal/%.h5 ref/geo.csv
 	mkdir -p $$(dir $$@) && rm -f $$@
-	./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) > $$@.log 2>&1 && ./h5l.py -t $$< $$@
+	./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) > $$@.log 2>&1 && ./h5l.py -t $$< $$@ || rm -f $$@
 
 ref/t/$(1)/pole.pdf: $(zl:%=ref/t/$(1)/z%.h5)
-	./pole.R -o $$@ --input $$^
+	./pole.R -o $$@ --input $$(wildcard ref/t/$(1)/z*.h5)
 
 endef
 
