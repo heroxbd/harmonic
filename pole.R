@@ -25,3 +25,7 @@ p <- p + geom_errorbar()
 p <- p + facet_wrap(~order, scales="free")
 print(p)
 dev.off()
+
+fid <- H5Fcreate(sub(".pdf", ".h5", argv$o))
+h5save(d, name="coef", file=fid, native=TRUE)
+H5Fclose(fid)
