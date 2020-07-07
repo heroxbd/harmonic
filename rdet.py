@@ -19,7 +19,7 @@ evtID = np.concatenate([np.repeat(e, len(p)) for e, p in zip(e.array('evtID'), p
 with h5py.File(args.opt,'w') as opt:
     opt.attrs['z'] = int(args.z)
 
-    gt = opt.create_dataset('PETruth', (len(evtID) ,), [('EventID', 'u4'), ('ChannelID', 'u2'), ('PETime', 'f4')], compression="gzip", shuffle=True)
+    gt = opt.create_dataset('PETruth', (len(evtID) ,), [('EventID', 'u4'), ('ChannelID', 'u4'), ('PETime', 'f4')], compression="gzip", shuffle=True)
     gt['EventID'] = evtID
     gt['ChannelID'] = np.concatenate(pmtID)
     gt['PETime'] = np.concatenate(e.array('hitTime'))

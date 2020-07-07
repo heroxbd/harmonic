@@ -11,7 +11,7 @@ all: $(taul:%=ref/t/%/pole.pdf)
 ref/geo.csv: $(JUNO)/PMTPos_Acrylic_with_chimney.csv $(JUNO)/3inch_pos.csv
 	mkdir -p $(dir $@)
 	cut -d' ' -f1,5,6 < $< > $@
-	awk '{print $$1 - 262144  " "  $$2 " " $$3}' < $(word 2,$^) >> $@
+	cat $(word 2,$^) >> $@
 
 cal/%.h5: cal/%.root
 	./rdet.py $^ -o $@ -z $(subst z,,$(basename $(notdir $@)))
