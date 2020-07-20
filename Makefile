@@ -1,7 +1,8 @@
 JUNO:=/cvmfs/juno.ihep.ac.cn/sl6_amd64_gcc830/Pre-Release/J20v1r0-Pre2/offline/Simulation/DetSimV2/DetSimOptions/data
 
 zl:=$(shell seq -17000 500 17000)
-taul:=01 05 10 20 50
+taul:=01 02 05 10 20 50
+dirl:=up down transverse
 JOBS:=4
 
 .PHONY: all
@@ -21,16 +22,35 @@ ref/t/$(1)/%.h5: cal/%.h5 ref/geo.csv
 	mkdir -p $$(dir $$@) && rm -f $$@
 	./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) > $$@.log 2>&1 && ./h5l.py -t $$< $$@ || rm -f $$@
 
-ref/t/$(1)/pole.pdf: $(zl:%=ref/t/$(1)/z%.h5)
-	./pole.R -o $$@ --input $$(wildcard ref/t/$(1)/z*.h5)
-
 endef
 
 $(eval $(foreach tau,$(taul),$(call tau-tpl,$(tau))))
 
-ref/q/%.h5: tt/cal/%.h5
-	mkdir -p $(dir $@) && rm -f $@
-	./shcalq.R $^ -j $(JOBS) -o $@ -l 9
+define dirl-tpl
+ref/t/$(1)/pole.h5: $(zl:%=ref/t/$(1)/z%.h5)
+	./pole.R -o $$@ --input $$(wildcard ref/t/$(1)/z*.h5)
+
+endef
+
+$(eval $(foreach dir,$(dirl),$(foreach tau,$(taul),$(call tau-tpl,$(tau)/$(dir)))))
+
+ref/t/%/upole.h5: $(addprefix ref/t/%,$(dirl:=/pole.h5))
+	mkdir -p $(dir $@)
+	./upole.R -o $@ --input $^
+
+define rec-tpl
+all: $(zl:%=$(1)/rec/z%.h5)
+
+rec/$(1)/%.h5: cal/$(1)/%.h5 ref/t/10/upole.h5
+	mkdir -p $$(dir $$@)
+	./ffit.py $$< --poly 10/upole.h5 --geo up/ref/geo.csv -o $$@ > $$@.log 2>&1
+
+rec/$(1)/vertex.pdf: $(zl:%=rec/$(1)/z%.h5)
+	./vertex.R -o $$@ --input $$^
+
+endef
+
+$(eval $(foreach d,$(dirl),$(call rec-tpl,$(d))))
 
 # Delete partial files when the processes are killed.
 .DELETE_ON_ERROR:

@@ -18,7 +18,7 @@ loadf <- function(fn) {
 
 d <- ldply(argv$input, loadf)
 
-pdf(argv$o, 13, 7)
+pdf(sub(".h5", ".pdf", argv$o), 13, 7)
 require(ggforce)
 p <- ggplot(d, aes(x=z, y=Value, ymin=Value-stderr, ymax=Value+stderr)) + geom_point() + xlab("z/mm") + ylab("t/ns")
 p <- p + geom_errorbar()
@@ -26,6 +26,6 @@ p <- p + facet_wrap(~order, scales="free")
 print(p)
 dev.off()
 
-fid <- H5Fcreate(sub(".pdf", ".h5", argv$o))
+fid <- H5Fcreate(argv$o)
 h5save(d, name="coef", file=fid, native=TRUE)
 H5Fclose(fid)
