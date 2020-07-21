@@ -6,7 +6,7 @@ dirl:=up down transverse
 JOBS:=4
 
 .PHONY: all
-all: $(taul:%=ref/t/%/pole.pdf)
+all:
 
 # 262144 is a magic number to map 300000 in the .csv to 37856 in detector simulation
 ref/geo.csv: $(JUNO)/PMTPos_Acrylic_with_chimney.csv $(JUNO)/3inch_pos.csv
@@ -32,18 +32,18 @@ ref/t/$(1)/pole.h5: $(zl:%=ref/t/$(1)/z%.h5)
 
 endef
 
-$(eval $(foreach dir,$(dirl),$(foreach tau,$(taul),$(call tau-tpl,$(tau)/$(dir)))))
+$(eval $(foreach dir,$(dirl),$(foreach tau,$(taul),$(call dirl-tpl,$(tau)/$(dir)))))
 
-ref/t/%/upole.h5: $(addprefix ref/t/%,$(dirl:=/pole.h5))
+ref/t/%/upole.h5: $(addprefix ref/t/%/,$(dirl:=/pole.h5))
 	mkdir -p $(dir $@)
 	./upole.R -o $@ --input $^
 
 define rec-tpl
-all: $(zl:%=$(1)/rec/z%.h5)
+all: rec/$(1)/vertex.pdf
 
 rec/$(1)/%.h5: cal/$(1)/%.h5 ref/t/10/upole.h5
 	mkdir -p $$(dir $$@)
-	./ffit.py $$< --poly 10/upole.h5 --geo up/ref/geo.csv -o $$@ > $$@.log 2>&1
+	./ffit.py $$< --poly $$(word 2,$$^) --geo up/ref/geo.csv -o $$@ > $$@.log 2>&1
 
 rec/$(1)/vertex.pdf: $(zl:%=rec/$(1)/z%.h5)
 	./vertex.R -o $$@ --input $$^
