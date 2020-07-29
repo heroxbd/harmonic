@@ -8,11 +8,12 @@ require(argparser)
 psr <- arg_parser("plot coefficients")
 psr <- add_argument(psr, "--input", nargs=Inf, help="input coefficients files")
 psr <- add_argument(psr, "-o", help="output file")
+psr <- add_argument(psr, "--cutoff", type="integer", default=8, help="cut off order of polynomials")
 argv <- parse_args(psr)
 
 loadf <- function(fn) {
     fid <- H5Fopen(fn)
-    rst <- cbind(h5read(fid, "coef"), direction=strsplit(fn, '/')[[1]][1])
+    rst <- cbind(h5read(fid, "coef"), direction=basename(dirname(fn)))
     H5Fclose(fid)
     rst
 }
@@ -21,7 +22,7 @@ d <- ldply(argv$input, loadf)
 d$direction <- as.factor(d$direction)
 
 require(orthopolynom)
-cutoff <- 8
+cutoff <- argv$cutoff
 lp <- legendre.polynomials(n=cutoff, normalized=TRUE)
 
 cols <- paste("leg", 0:cutoff, sep='')
