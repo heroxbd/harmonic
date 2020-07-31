@@ -39,13 +39,13 @@ ref/t/%/upole.h5: $(addprefix ref/t/%/,$(dirl:=/pole.h5))
 	./upole.R -o $@ --input $^
 
 define rec-tpl
-all: rec/$(1)/vertex.pdf
+all: rec/$(1)/vertex.h5
 
 rec/$(1)/%.h5: cal/$(1)/%.h5 ref/t/10/upole.h5 ref/geo.csv
 	mkdir -p $$(dir $$@)
 	./ffit.py $$< --poly $$(word 2,$$^) --geo ref/geo.csv -o $$@ > $$@.log 2>&1
 
-rec/$(1)/vertex.pdf: $(zl:%=rec/$(1)/z%.h5)
+rec/$(1)/vertex.h5: $(zl:%=rec/$(1)/z%.h5)
 	./vertex.R -o $$@ --input $$^
 
 endef

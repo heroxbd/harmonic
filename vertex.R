@@ -28,7 +28,7 @@ ds <- d %>% group_by(z0) %>% summarise(xerr=sd(x), xm=mean(x), yerr=sd(y), ym=me
 ds$zm0 = ds$zm - ds$z0
 
 require(ggplot2)
-pdf(argv$o, 9, 6)
+pdf(sub(".h5", ".pdf", argv$o), 9, 6)
 p <- ggplot(ds, aes(x=z0, y=xm, ymin=xm-xerr, ymax=xm+xerr)) + geom_errorbar() + geom_point() + ylab("x/mm")
 print(p)
 p <- p + aes(y=ym, ymin=ym-yerr, ymax=ym+yerr) + ylab("y/mm")
@@ -38,3 +38,7 @@ print(p)
 p <- p + aes(y=zm0, ymin=zm0-zerr, ymax=zm0+zerr) + ylab("(z-z0)/mm")
 print(p)
 dev.off()
+
+fid <- H5Fcreate(argv$o)
+h5save(ds, name="vertex", file=fid, native=TRUE)
+H5Fclose(fid)
