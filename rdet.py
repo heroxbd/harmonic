@@ -15,11 +15,20 @@ f = uproot.open(args.ipt)
 e = f['evt']
 pmtID = e.array('pmtID')
 evtID = np.concatenate([np.repeat(e, len(p)) for e, p in zip(e.array('evtID'), pmtID)])
+pID = np.concatenate(pmtID)
+ht = np.concatenate(e.array('hitTime'))
+primary = ht < 4096
+secondary = np.logical_not(primary)
 
 with h5py.File(args.opt,'w') as opt:
     opt.attrs['z'] = int(args.z)
 
-    gt = opt.create_dataset('PETruth', (len(evtID) ,), [('EventID', 'u4'), ('ChannelID', 'u4'), ('PETime', 'f8')], compression="gzip", shuffle=True)
-    gt['EventID'] = evtID
-    gt['ChannelID'] = np.concatenate(pmtID)
-    gt['PETime'] = np.concatenate(e.array('hitTime'))
+    gt = opt.create_dataset('PETruth', (np.sum(primary) ,), [('EventID', 'u4'), ('ChannelID', 'u4'), ('PETime', 'f8')], compression="gzip", shuffle=True)
+    gt['EventID'] = evtID[primary]
+    gt['ChannelID'] = pID[primary]
+    gt['PETime'] = ht[primary]
+
+    gt2 = opt.create_dataset('secondary/PETruth', (np.sum(secondary) ,), [('EventID', 'u4'), ('ChannelID', 'u4'), ('PETime', 'f8')], compression="gzip", shuffle=True)
+    gt2['EventID'] = evtID[secondary]
+    gt2['ChannelID'] = pID[secondary]
+    gt2['PETime'] = ht[secondary]
