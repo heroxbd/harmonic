@@ -8,7 +8,7 @@ from scipy.optimize import minimize
 
 mtd = "Powell"
 
-R=17000
+R=18000
 
 x0l = [(0,0,0)] + [(np.arccos(a), b, R) for a in (-2./3, 0., 2./3) for b in (1./3*np.pi, np.pi , 5./3*np.pi)]
 bn = ((None, None), (None, None), (-R, R))
