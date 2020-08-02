@@ -20,37 +20,54 @@ cal/%.h5: cal/%.root
 define tau-tpl
 ref/t/$(1)/%.h5: cal/%.h5 ref/geo.csv
 	mkdir -p $$(dir $$@) && rm -f $$@
-	./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) > $$@.log 2>&1 && ./h5l.py -t $$< $$@ || rm -f $$@
+	./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) > $$@.log 2>&1
 
 endef
 
 $(eval $(foreach tau,$(taul),$(call tau-tpl,$(tau))))
 
-define dirl-tpl
-ref/t/$(1)/pole.h5: $(zl:%=ref/t/$(1)/z%.h5)
-	./pole.R -o $$@ --input $$(wildcard ref/t/$(1)/z*.h5)
+ref/%/pole.h5: $(addprefix ref/%/z,$(zl:=.h5))
+	./pole.R -o $@ --input $^
 
-endef
-
-$(eval $(foreach dir,$(dirl),$(foreach tau,$(taul),$(call dirl-tpl,$(tau)/$(dir)))))
-
-ref/t/%/upole.h5: $(addprefix ref/t/%/,$(dirl:=/pole.h5))
+ref/%/upole.h5: $(addprefix ref/%/,$(dirl:=/pole.h5))
 	mkdir -p $(dir $@)
 	./upole.R -o $@ --input $^
 
-define rec-tpl
-all: rec/$(1)/vertex.h5
+rec/%.h5: cal/%.h5 ref/t/10/upole.h5 ref/geo.csv
+	mkdir -p $(dir $@)
+	./ffit.py $< --poly $(word 2,$^) --geo ref/geo.csv -o $@ > $@.log 2>&1
 
-rec/$(1)/%.h5: cal/$(1)/%.h5 ref/t/10/upole.h5 ref/geo.csv
-	mkdir -p $$(dir $$@)
-	./ffit.py $$< --poly $$(word 2,$$^) --geo ref/geo.csv -o $$@ > $$@.log 2>&1
+rec/o/%/vertex.h5: $(addprefix rec/o/%/z,$(zl:=.h5))
+	./vertex.R -o $@ --input $^ --offset rec/$*/offset.csv
 
-rec/$(1)/vertex.h5: $(zl:%=rec/$(1)/z%.h5)
-	./vertex.R -o $$@ --input $$^
+# default rec/
+rec/%/vertex.h5: $(addprefix rec/%/z,$(zl:=.h5))
+	./vertex.R -o $@ --input $^
+
+rec/offset.csv: rec/up/vertex.h5 rec/down/vertex.h5 rec/transverse/vertex.h5
+	./offset.R --up $< --down $(word 2,$^) --transverse $(word 3,$^) -o $@
+
+rec/up/offset.csv: rec/offset.csv
+	echo 0 0 `cat $^` > $@
+rec/down/offset.csv: rec/offset.csv
+	echo 0 0 -`cat $^` > $@
+rec/transverse/offset.csv: rec/offset.csv
+	echo 0 `cat $^` 0 > $@
+
+define otau-tpl
+ref/o/t/$(1)/$(2)/%.h5: cal/$(2)/%.h5 ref/geo.csv rec/$$(dir $$*)/offset.csv
+	mkdir -p $$(dir $$@) && rm -f $$@
+	while ! ./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) --offset rec/$(2)/offset.csv; do sleep 5; done > $$@.log 2>&1
 
 endef
 
-$(eval $(foreach d,$(dirl),$(call rec-tpl,$(d))))
+$(eval $(foreach d,$(dirl),$(foreach tau,$(taul),$(call otau-tpl,$(tau),$(d)))))
+
+all: $(dirl:%=rec/o/%/vertex.h5)
+
+rec/o/%.h5: cal/%.h5 ref/o/t/10/upole.h5 ref/geo.csv
+	mkdir -p $(dir $@)
+	./ffit.py $< --poly $(word 2,$^) --geo ref/geo.csv -o $@ > $@.log 2>&1
 
 # Delete partial files when the processes are killed.
 .DELETE_ON_ERROR:

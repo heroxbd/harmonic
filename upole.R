@@ -27,14 +27,14 @@ lp <- legendre.polynomials(n=cutoff, normalized=TRUE)
 
 cols <- paste("leg", 0:cutoff, sep='')
 
-d <- cbind(d, as.data.frame(polynomial.values(lp, d$z/17000), col.names=cols))
+d <- cbind(d, as.data.frame(polynomial.values(lp, d$r/17000), col.names=cols))
 
 os <- seq(2, cutoff, by=2)
 es <- seq(1, cutoff+1, by=2)
 of <- as.formula(paste("Value ~", paste(c(cols[os], "0"), collapse="+")))
 ef <- as.formula(paste("Value ~", paste(c(cols[es], "0"), collapse="+")))
 
-zl <- seq(-17000, 17000, 500)
+zl <- seq(0, 17000, 500)
 pd <- data.frame()
 polyv <- data.frame()
 
@@ -62,14 +62,15 @@ for (o in 1:max(d$order)) {
 
     polyv <- rbind(polyv, subset(data.frame(poly=0:(length(r)-1), value=coef(r), order=o), value!=0))
 
-    pd <- rbind(pd, data.frame(z=zl, Value=predict(r, zl/17000), order=o))
+    pd <- rbind(pd, data.frame(r=zl, Value=predict(r, zl/17000), order=o))
 }
 
-pdf(sub(".h5", ".pdf", argv$o), 13, 7)
 require(ggforce)
-p <- ggplot(d, aes(x=z, y=Value))
-p <- p + xlab("z/mm") + ylab("t/ns")
-p <- p + geom_errorbar(aes(ymin=Value-stderr, ymax=Value+stderr, color=direction))
+pdf(sub(".h5", ".pdf", argv$o), 13, 7)
+p <- ggplot(d, aes(x=r, y=Value))
+p <- p + xlab("r/mm") + ylab("t/ns")
+p <- p + geom_point(aes(color=direction))
+# p <- p + geom_errorbar(aes(ymin=Value-stderr, ymax=Value+stderr, color=direction))
 p <- p + geom_line(data=pd)
 p <- p + facet_wrap(~order, scales="free")
 print(p)

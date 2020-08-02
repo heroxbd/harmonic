@@ -6,14 +6,19 @@ psr <- add_argument(psr, "ipt", help="input")
 psr <- add_argument(psr, "-j", help="number of jobs", default=1, type="integer")
 psr <- add_argument(psr, "--tau", help="tau", type="double", default=0.01)
 psr <- add_argument(psr, "--geo", help="PMT positions")
+psr <- add_argument(psr, "--offset", help="source offset", short="-s")
 psr <- add_argument(psr, "-l", help="order of harmonics", type="integer", default=6)
 psr <- add_argument(psr, "-o", help="output")
 
 argv <- parse_args(psr)
 
-geo <- read.table(argv$geo, col.names=c("ChannelID", "theta", "phi"))
+if (is.na(argv$offset)) {
+    offset <- c(0,0,0)
+} else {
+    offset <- as.numeric(read.table(argv$offset))
+}
 
-od <- argv$l^2 - 1
+geo <- read.table(argv$geo, col.names=c("ChannelID", "theta", "phi"))
 
 require(rhdf5)
 require(data.table)
@@ -26,12 +31,14 @@ pmtl <- data.table(pmt=pl)
 
 ia <- h5readAttributes(argv$ipt, "/")
 z <- ifelse(ia$z, ia$z, 1)
-uz <- c(0,0,z) / abs(z)
+oz <- c(0,0,z) + offset
+uz <- as.matrix(oz / sqrt(sum(oz^2)))
 
 geo$theta <- geo$theta / 180 * pi
 geo$phi <- geo$phi / 180 * pi
 # pz inner uz, but now everything is on z-axis and is not needed.
-leg_x <- pz <- cos(geo$theta)
+pv <- matrix(c(sin(geo$theta) * c(cos(geo$phi), sin(geo$phi)), cos(geo$theta)), ncol=3)
+leg_x <- as.vector(pv %*% uz)
 
 require(orthopolynom)
 require(plyr)
@@ -65,4 +72,5 @@ sa$order <- 0:argv$l
 fid <- H5Fcreate(argv$o)
 h5save(sa, name="coef", file=fid, native=TRUE)
 h5save(csm[(argv$l+2):nrow(csm),], name="event", file=fid, native=TRUE)
+h5save(oz, name="v0", file=fid, native=TRUE)
 H5Fclose(fid)

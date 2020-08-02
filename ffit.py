@@ -6,7 +6,7 @@ import argparse, numpy as np, pandas as pd, h5py
 from crot import tfit, srql
 from scipy.optimize import minimize
 
-mtd = "SLSQP"
+mtd = "Powell"
 
 R=17000
 
