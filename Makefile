@@ -55,7 +55,7 @@ rec/0/%/vertex.h5: $(addprefix rec/0/%/z,$(zl:=.h5))
 	echo 0 `cat $^` 0 > $@
 
 define otau-tpl
-ref/o/t/$(1)/$(2)/%.h5: cal/$(2)/%.h5 ref/geo.csv rec/0/$$(dir $$*)/offset.csv
+ref/o/t/$(1)/$(2)/%.h5: cal/$(2)/%.h5 ref/geo.csv rec/0/$(2)/offset.csv
 	mkdir -p $$(dir $$@) && rm -f $$@
 	while ! ./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) --offset rec/0/$(2)/offset.csv; do sleep 5; done > $$@.log 2>&1
 
