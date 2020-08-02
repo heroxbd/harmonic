@@ -11,7 +11,7 @@ psr <- add_argument(psr, "--offset", short="-r", nargs=Inf, help="vertex offset"
 psr <- add_argument(psr, "-o", help="output file")
 argv <- parse_args(psr)
 
-if (is.null(argv$offset)) {
+if (is.na(argv$offset)) {
     offset <- c(0,0,0)
 } else {
     offset <- as.numeric(read.table(argv$offset))

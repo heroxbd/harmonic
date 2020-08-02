@@ -20,7 +20,7 @@ cal/%.h5: cal/%.root
 define tau-tpl
 ref/t/$(1)/%.h5: cal/%.h5 ref/geo.csv
 	mkdir -p $$(dir $$@) && rm -f $$@
-	./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) > $$@.log 2>&1
+	while ! ./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^); do sleep 5; done > $$@.log 2>&1
 
 endef
 
@@ -33,31 +33,31 @@ ref/%/upole.h5: $(addprefix ref/%/,$(dirl:=/pole.h5))
 	mkdir -p $(dir $@)
 	./upole.R -o $@ --input $^
 
-rec/%.h5: cal/%.h5 ref/t/10/upole.h5 ref/geo.csv
+rec/0/%.h5: cal/%.h5 ref/t/10/upole.h5 ref/geo.csv
 	mkdir -p $(dir $@)
 	./ffit.py $< --poly $(word 2,$^) --geo ref/geo.csv -o $@ > $@.log 2>&1
 
-rec/o/%/vertex.h5: $(addprefix rec/o/%/z,$(zl:=.h5))
-	./vertex.R -o $@ --input $^ --offset rec/$*/offset.csv
+rec/o/%/vertex.h5: rec/0/%/offset.csv $(addprefix rec/o/%/z,$(zl:=.h5)) 
+	./vertex.R -o $@ --input $(wordlist 2,999,$^) --offset $<
 
 # default rec/
-rec/%/vertex.h5: $(addprefix rec/%/z,$(zl:=.h5))
+rec/0/%/vertex.h5: $(addprefix rec/0/%/z,$(zl:=.h5))
 	./vertex.R -o $@ --input $^
 
-rec/offset.csv: rec/up/vertex.h5 rec/down/vertex.h5 rec/transverse/vertex.h5
+%/offset.csv: %/up/vertex.h5 %/down/vertex.h5 %/transverse/vertex.h5
 	./offset.R --up $< --down $(word 2,$^) --transverse $(word 3,$^) -o $@
 
-rec/up/offset.csv: rec/offset.csv
+%/up/offset.csv: %/offset.csv
 	echo 0 0 `cat $^` > $@
-rec/down/offset.csv: rec/offset.csv
+%/down/offset.csv: %/offset.csv
 	echo 0 0 -`cat $^` > $@
-rec/transverse/offset.csv: rec/offset.csv
+%/transverse/offset.csv: %/offset.csv
 	echo 0 `cat $^` 0 > $@
 
 define otau-tpl
-ref/o/t/$(1)/$(2)/%.h5: cal/$(2)/%.h5 ref/geo.csv rec/$$(dir $$*)/offset.csv
+ref/o/t/$(1)/$(2)/%.h5: cal/$(2)/%.h5 ref/geo.csv rec/0/$$(dir $$*)/offset.csv
 	mkdir -p $$(dir $$@) && rm -f $$@
-	while ! ./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) --offset rec/$(2)/offset.csv; do sleep 5; done > $$@.log 2>&1
+	while ! ./shcalt.R --tau 0.$(1) $$< -o $$@ -l 4 --geo $$(word 2,$$^) --offset rec/0/$(2)/offset.csv; do sleep 5; done > $$@.log 2>&1
 
 endef
 
