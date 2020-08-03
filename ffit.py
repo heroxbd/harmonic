@@ -38,12 +38,24 @@ def aicg(tx):
     rst = (x, y, z, ot.T0, tloss)
 
     return pd.DataFrame(np.array(rst, dtype=ddtype), index=[eid])
+
+def loadp(fn):
+    with h5py.File(fn, 'r') as ipt:
+        polyv = ipt['polyv'][...]
+
+    pord = max(polyv['poly']) + 1
+    lord = max(polyv['order']) + 1
+    resm = np.zeros((pord, lord))
+    for i in range(1, lord):
+        sp = polyv[polyv['order']==i]
+        resm[sp['poly'], i] = sp['value']
+    return resm
+
 if __name__=='__main__':
     psr = argparse.ArgumentParser()
     psr.add_argument("-o", dest='opt', help="output")
     psr.add_argument("--geo", help="PMT geometry")
     psr.add_argument("--poly", help="polynomial model of Legendre coefficients on radius")
-    psr.add_argument('-j', dest="jobs", type=int, default=1, help="number of jobs")
     psr.add_argument('ipt', help="input and selection table output")
     argv = psr.parse_args()
 
@@ -54,18 +66,8 @@ if __name__=='__main__':
     geo['h'] = np.sin(geo['theta'])
     geo['x'] = geo['h'] * np.cos(geo['phi'])
     geo['y'] = geo['h'] * np.sin(geo['phi'])
-
-    with h5py.File(argv.poly, 'r') as ipt:
-        polyv = ipt['polyv'][...]
-
-    pord = max(polyv['poly']) + 1
-    lord = max(polyv['order']) + 1
-    resm = np.zeros((pord, lord))
-    for i in range(1, lord):
-        sp = polyv[polyv['order']==i]
-        resm[sp['poly'], i] = sp['value'] * np.sqrt((2 * sp['poly'] + 1)/2)
-
-    timing = tfit(geo.set_index("ChannelID")[['x', 'y', 'z']], resm)
+    
+    timing = tfit(geo.set_index("ChannelID")[['x', 'y', 'z']], loadp(argv.poly))
 
     ddtype = [(i, np.float32) for i in ("x", "y", "z", "T0", "tloss")]
 

@@ -12,7 +12,7 @@ class tfit(object):
         v unit vector of the PMTs
         '''
         self.geo = geo
-        self.m = m # response matrix [poly, legendre]
+        self.m = m * np.sqrt((2 * np.arange(m.shape[1]) + 1)/2) # response matrix [poly, legendre]
 
     def set_chl(self, chl):
         self.chl = chl

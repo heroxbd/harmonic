@@ -69,6 +69,10 @@ rec/o/%.h5: cal/%.h5 ref/o/t/10/upole.h5 ref/geo.csv
 	mkdir -p $(dir $@)
 	./ffit.py $< --poly $(word 2,$^) --geo ref/geo.csv -o $@ > $@.log 2>&1
 
+rec/s/%.pdf: ref/o/t/10/%.h5 ref/o/t/10/upole.h5
+	mkdir -p $(dir $@)
+	./match.py $< -o $@ --poly $(word 2,$^)
+
 # Delete partial files when the processes are killed.
 .DELETE_ON_ERROR:
 # Keep intermediate files around
