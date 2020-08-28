@@ -1,4 +1,5 @@
 JUNO:=/cvmfs/juno.ihep.ac.cn/sl6_amd64_gcc830/Pre-Release/J20v1r0-Pre2/offline/Simulation/DetSimV2/DetSimOptions/data
+PMT:=/cvmfs/juno.ihep.ac.cn/sl6_amd64_gcc830/Pre-Release/J20v1r0-Pre2/data/Simulation/ElecSim/pmtdata.txt
 
 zl:=$(shell seq -17000 500 17000)
 taul:=01 02 05 10 20 50
@@ -25,6 +26,10 @@ ref/t/$(1)/%.h5: cal/%.h5 ref/geo.csv
 endef
 
 $(eval $(foreach tau,$(taul),$(call tau-tpl,$(tau))))
+
+ref/q/%.h5: cal/%.h5 ref/geo.csv
+	mkdir -p $(dir $@) && rm -f $@
+	./shcalq.R $< -o $@ -l 4 --geo $(word 2,$^) --PMT $(PMT) > $@.log 2>&1
 
 ref/%/pole.h5: $(addprefix ref/%/z,$(zl:=.h5))
 	./pole.R -o $@ --input $^
